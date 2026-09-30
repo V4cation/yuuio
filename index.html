@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Личный трекер</title>
+<style>
+/* ============ БАЗА / ПЕРЕМЕННЫЕ ============ */
+:root {
+  --bg: #0a0a0f;
+  --bg-2: #12121a;
+  --bg-3: #1a1a24;
+  --border: #23232f;
+  --text: #ececf1;
+  --text-2: #8a8a9a;
+  --text-3: #5a5a6a;
+  --accent: #c9a86a;      /* дорогой золотой */
+  --accent-2: #e0c48a;
+  --accent-soft: rgba(201,168,106,0.12);
+  --danger: #e05c5c;
+  --success: #5cc98a;
+  --info: #6aa8e0;
+  --purple: #a06ae0;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --transition: 0.25s cubic-bezier(.4,0,.2,1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+[data-theme="light"] {
+  --bg: #f5f3ee;
+  --bg-2: #ffffff;
+  --bg-3: #ebe7de;
+  --border: #e0dcd2;
+  --text: #1a1a24;
+  --text-2: #6a6a7a;
+  --text-3: #9a9aad;
+  --accent: #a8823a;
+  --accent-2: #8a6a2a;
+  --accent-soft: rgba(168,130,58,0.1);
+  --shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--transition), color var(--transition);
+  overscroll-behavior: none;
+}
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+input, select, textarea {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  outline: none;
+  transition: border var(--transition), background var(--transition);
+  width: 100%;
+  color: var(--text);
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+/* ============ СКРОЛЛ ============ */
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ============ ШАПКА ============ */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+.header {
+  padding: calc(12px + var(--safe-top)) 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  transition: background var(--transition), border var(--transition);
+}
+.header__title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header__subtitle {
+  font-size: 11px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 2px;
+}
+.theme-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: transform var(--transition), background var(--transition);
+}
+.theme-btn:active { transform: scale(0.9); }
+
+/* ============ КОНТЕНТ ============ */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 16px calc(90px + var(--safe-bottom));
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+.tab-panel { display: none; animation: fadeIn 0.3s ease; }
+.tab-panel.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ НИЖНЯЯ НАВИГАЦИЯ ============ */
+.nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  padding: 8px 4px calc(8px + var(--safe-bottom));
+  z-index: 20;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.nav__btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 500;
+  transition: color var(--transition);
+  position: relative;
+}
+.nav__btn .icon {
+  font-size: 20px;
+  transition: transform var(--transition);
+}
+.nav__btn.active { color: var(--accent); }
+.nav__btn.active .icon { transform: translateY(-2px) scale(1.1); }
+.nav__btn.active::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  width: 24px; height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+/* ============ КАРТОЧКИ ============ */
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: background var(--transition), border var(--transition);
+}
+.card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin: 4px 0 16px;
+}
+
+/* ============ ДАШБОРД ============ */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.dash-tile {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition), border var(--transition);
+}
+.dash-tile:active { transform: scale(0.97); }
+.dash-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0.6;
+}
+.dash-tile__icon { font-size: 22px; margin-bottom: 8px; display: block; }
+.dash-tile__label {
+  font-size: 11px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.dash-tile__value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.dash-tile__hint {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.dash-wide {
+  grid-column: 1 / -1;
+}
+
+/* ============ ПРОГРЕСС-БАР ============ */
+.progress {
+  height: 6px;
+  background: var(--bg-3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  width: 0%;
+}
+.progress__fill.danger { background: linear-gradient(90deg, var(--danger), #ff8080); }
+.progress__fill.success { background: linear-gradient(90deg, var(--success), #80e0a0); }
+
+/* ============ КНОПКИ ============ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 14px;
+  transition: transform var(--transition), background var(--transition);
+}
+.btn:active { transform: scale(0.96); }
+.btn--primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #0a0a0f;
+  border: none;
+}
+.btn--ghost { background: transparent; }
+.btn--danger { color: var(--danger); }
+.btn--block { width: 100%; }
+.btn--sm { padding: 6px 10px; font-size: 12px; }
+
+/* ============ ПИЛЮЛИ / ЧИПЫ ============ */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin: 0 -16px 12px; padding-left: 16px; padding-right: 16px; }
+.chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.chip.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============ РЯДЫ ============ */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.row:last-child { border-bottom: none; }
+.row__label { font-size: 14px; }
+.row__sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.row__value { font-weight: 600; font-size: 14px; }
+
+/* ============ МОДАЛКА ============ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  width: 100%;
+  background: var(--bg-2);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px calc(20px + var(--safe-bottom));
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal__handle {
+  width: 40px; height: 4px;
+  background: var(--text-3);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.modal__title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.form-group { margin-bottom: 12px; }
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ============ FAB ============ */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(80px + var(--safe-bottom));
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #0a0a0f;
+  font-size: 28px;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(201,168,106,0.4);
+  z-index: 15;
+  transition: transform var(--transition);
+}
+.fab:active { transform: scale(0.9) rotate(90deg); }
+
+/* ============ ПУСТОЕ СОСТОЯНИЕ ============ */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-3);
+}
+.empty__icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+.empty__text { font-size: 14px; }
+
+/* ============ КАЛОРИИ ============ */
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.macro {
+  text-align: center;
+  padding: 10px 4px;
+  background: var(--bg-3);
+  border-radius: var(--radius-sm);
+}
+.macro__value { font-size: 16px; font-weight: 700; }
+.macro__label { font-size: 10px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+.macro__value.kcal { color: var(--accent); }
+.macro__value.p { color: var(--info); }
+.macro__value.f { color: var(--purple); }
+.macro__value.c { color: var(--success); }
+
+.meal-group { margin-bottom: 16px; }
+.meal-group__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.meal-group__head .kcal { color: var(--accent); }
+
+.food-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  animation: fadeIn 0.3s ease;
+}
+.food-item__name { font-size: 14px; font-weight: 500; }
+.food-item__meta { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+.food-item__kcal { font-weight: 700; color: var(--accent); font-size: 14px; }
+.food-item__del { color: var(--danger); font-size: 18px; padding: 0 4px; margin-left: 8px; }
+
+/* ============ ВОДА ============ */
+.water-drops {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.water-drop {
+  width: 28px; height: 36px;
+  border-radius: 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all var(--transition);
+}
+.water-drop.filled {
+  background: linear-gradient(180deg, var(--info), #4a88c0);
+  border-color: var(--info);
+}
+
+/* ============ ГРАФИКИ (мини) ============ */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 80px;
+  margin-top: 12px;
+}
+.bar-chart__bar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: height 0.5s ease;
+  position: relative;
+}
+.bar-chart__label {
+  font-size: 9px;
+  color: var(--text-3);
+  text-align: center;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="app">
+  <header class="header">
+    <div>
+      <div class="header__title" id="headerTitle">Дашборд</div>
+      <div class="header__subtitle" id="headerDate"></div>
+    </div>
+    <button class="theme-btn" id="themeBtn">🌙</button>
+  </header>
+
+  <main class="content" id="content">
+    <!-- ДАШБОРД -->
+    <section class="tab-panel active" id="panel-dash">
+      <div class="dash-grid" id="dashGrid"></div>
+      <div class="card">
+        <div class="card__title">Калории за 7 дней</div>
+        <div class="bar-chart" id="dashKcalChart"></div>
+      </div>
+    </section>
+
+    <!-- КАЛОРИИ -->
+    <section class="tab-panel" id="panel-kcal">
+      <div class="chips" id="kcalDates"></div>
+
+      <div class="card">
+        <div class="card__title">
+          <span>Сводка</span>
+          <span id="kcalDateLabel"></span>
+        </div>
+        <div class="macro-grid">
+          <div class="macro">
+            <div class="macro__value kcal" id="mKcal">0</div>
+            <div class="macro__label">Ккал</div>
+          </div>
+          <div class="macro">
+            <div class="macro__value p" id="mP">0</div>
+            <div class="macro__label">Белки</div>
+          </div>
+          <div class="macro">
+            <div class="macro__value f" id="mF">0</div>
+            <div class="macro__label">Жиры</div>
+          </div>
+          <div class="macro">
+            <div class="macro__value c" id="mC">0</div>
+            <div class="macro__label">Углев.</div>
+          </div>
+        </div>
+        <div class="progress" style="margin-top:12px">
+          <div class="progress__fill" id="kcalProgress"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-2);margin-top:6px;text-align:right" id="kcalTarget">Норма: 2000 ккал</div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">Вода</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div><span style="font-size:24px;font-weight:700;color:var(--info)" id="waterCount">0</span> <span style="color:var(--text-2)">/ 8 стаканов</span></div>
+          <button class="btn btn--sm" id="waterAddBtn">+ Добавить</button>
+        </div>
+        <div class="water-drops" id="waterDrops"></div>
+      </div>
+
+      <div id="mealsContainer"></div>
+    </section>
+  </main>
+
+  <button class="fab" id="fab" style="display:none">+</button>
+
+  <nav class="nav">
+    <button class="nav__btn active" data-tab="dash">
+      <span class="icon">◈</span><span>Обзор</span>
+    </button>
+    <button class="nav__btn" data-tab="kcal">
+      <span class="icon">🍽</span><span>Калории</span>
+    </button>
+    <button class="nav__btn" data-tab="fin">
+      <span class="icon">₿</span><span>Финансы</span>
+    </button>
+    <button class="nav__btn" data-tab="hab">
+      <span class="icon">✓</span><span>Привычки</span>
+    </button>
+    <button class="nav__btn" data-tab="work">
+      <span class="icon">🏋</span><span>Спорт</span>
+    </button>
+    <button class="nav__btn" data-tab="task">
+      <span class="icon">☰</span><span>Задачи</span>
+    </button>
+  </nav>
+</div>
+
+<!-- МОДАЛКА -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal__handle"></div>
+    <div class="modal__title" id="modalTitle">Заголовок</div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ==================================================
+   ХРАНИЛИЩЕ
+================================================== */
+const DB = {
+  load(key, def) {
+    try { const v = localStorage.getItem('trk_' + key); return v ? JSON.parse(v) : def; }
+    catch(e) { return def; }
+  },
+  save(key, val) { localStorage.setItem('trk_' + key, JSON.stringify(val)); }
+};
+
+/* ==================================================
+   СОСТОЯНИЕ
+================================================== */
+const State = {
+  theme: DB.load('theme', 'dark'),
+  kcal: DB.load('kcal', {}),      // { 'YYYY-MM-DD': { foods: { 'завтрак': [{name,kcal,p,f,c}] }, water: 0 } }
+  kcalTarget: DB.load('kcalTarget', 2000),
+  products: DB.load('products', null) || defaultProducts(),
+  currentDate: today(),
+  dashPeriod: 7,
+};
+
+function today() { return new Date().toISOString().slice(0,10); }
+function dateLabel(d) {
+  const dt = new Date(d + 'T00:00:00');
+  const wd = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][dt.getDay()];
+  return `${wd}, ${dt.getDate()}.${String(dt.getMonth()+1).padStart(2,'0')}`;
+}
+function shortDate(d) {
+  const dt = new Date(d + 'T00:00:00');
+  return `${dt.getDate()}.${String(dt.getMonth()+1).padStart(2,'0')}`;
+}
+
+/* ==================================================
+   БАЗА ПРОДУКТОВ (на 100г)
+================================================== */
+function defaultProducts() {
+  return [
+    {n:'Куриная грудка', k:165, p:31, f:3.6, c:0},
+    {n:'Куриное бедро', k:209, p:26, f:11, c:0},
+    {n:'Говядина', k:250, p:26, f:15, c:0},
+    {n:'Свинина', k:242, p:27, f:14, c:0},
+    {n:'Индейка', k:189, p:29, f:7, c:0},
+    {n:'Лосось', k:208, p:20, f:13, c:0},
+    {n:'Тунец', k:132, p:28, f:1, c:0},
+    {n:'Яйцо куриное', k:155, p:13, f:11, c:1.1},
+    {n:'Творог 5%', k:121, p:17, f:5, c:3},
+    {n:'Молоко 2.5%', k:52, p:2.8, f:2.5, c:4.7},
+    {n:'Кефир 1%', k:40, p:3, f:1, c:4},
+    {n:'Сыр твёрдый', k:364, p:25, f:29, c:0},
+    {n:'Рис отварной', k:116, p:2.2, f:0.5, c:25},
+    {n:'Гречка отварная', k:110, p:4, f:1.1, c:21},
+    {n:'Макароны отварные', k:131, p:5, f:1.1, c:25},
+    {n:'Овсянка на воде', k:88, p:3, f:1.7, c:15},
+    {n:'Картофель отварной', k:82, p:2, f:0.4, c:17},
+    {n:'Хлеб ржаной', k:210, p:6.6, f:1.2, c:40},
+    {n:'Хлеб белый', k:265, p:8, f:3.2, c:49},
+    {n:'Банан', k:96, p:1.5, f:0.2, c:21},
+    {n:'Яблоко', k:52, p:0.4, f:0.2, c:14},
+    {n:'Апельсин', k:47, p:0.9, f:0.1, c:12},
+    {n:'Огурец', k:15, p:0.8, f:0.1, c:3},
+    {n:'Помидор', k:20, p:1.1, f:0.2, c:4},
+    {n:'Салат', k:15, p:1.4, f:0.2, c:2},
+    {n:'Авокадо', k:160, p:2, f:15, c:9},
+    {n:'Орехи грецкие', k:654, p:15, f:65, c:14},
+    {n:'Миндаль', k:575, p:21, f:49, c:22},
+    {n:'Масло оливковое', k:884, p:0, f:100, c:0},
+    {n:'Масло сливочное', k:717, p:0.9, f:81, c:0.1},
+    {n:'Шоколад тёмный', k:546, p:5, f:31, c:61},
+    {n:'Кофе чёрный', k:2, p:0.1, f:0, c:0},
+    {n:'Чай без сахара', k:1, p:0, f:0, c:0},
+    {n:'Кола', k:42, p:0, f:0, c:10.6},
+    {n:'Пиво', k:43, p:0.5, f:0, c:3.6},
+    {n:'Пицца', k:266, p:11, f:10, c:33},
+    {n:'Бургер', k:295, p:15, f:14, c:27},
+    {n:'Суши ролл', k:150, p:6, f:4, c:22},
+    {n:'Протеин (порошок)', k:380, p:75, f:5, c:8},
+  ];
+}
+
+/* ==================================================
+   ТЕМА
+================================================== */
+function applyTheme() {
+  document.body.setAttribute('data-theme', State.theme);
+  document.getElementById('themeBtn').textContent = State.theme === 'dark' ? '🌙' : '☀️';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = State.theme === 'dark' ? '#0a0a0f' : '#f5f3ee';
+}
+document.getElementById('themeBtn').onclick = () => {
+  State.theme = State.theme === 'dark' ? 'light' : 'dark';
+  DB.save('theme', State.theme);
+  applyTheme();
+};
+
+/* ==================================================
+   НАВИГАЦИЯ
+================================================== */
+const TABS = {
+  dash:  { title: 'Дашборд',  render: renderDash,  fab: false },
+  kcal:  { title: 'Калории',  render: renderKcal,  fab: true,  fabAction: addFood },
+  fin:   { title: 'Финансы',  render: () => showStub('Финансы', 'Часть 2/5'), fab: false },
+  hab:   { title: 'Привычки', render: () => showStub('Привычки', 'Часть 3/5'), fab: false },
+  work:  { title: 'Спорт',    render: () => showStub('Тренировки', 'Часть 4/5'), fab: false },
+  task:  { title: 'Задачи',   render: () => showStub('Задачи', 'Часть 5/5'), fab: false },
+};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('panel-' + tab);
+  if (panel) panel.classList.add('active');
+
+  document.querySelectorAll('.nav__btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('headerTitle').textContent = TABS[tab].title;
+  document.getElementById('headerDate').textContent = dateLabel(today());
+
+  const fab = document.getElementById('fab');
+  if (TABS[tab].fab) {
+    fab.style.display = 'flex';
+    fab.onclick = TABS[tab].fabAction;
+  } else {
+    fab.style.display = 'none';
+  }
+
+  document.getElementById('content').scrollTop = 0;
+  if (TABS[tab].render) TABS[tab].render();
+}
+document.querySelectorAll('.nav__btn').forEach(b => {
+  b.onclick = () => switchTab(b.dataset.tab);
+});
+
+/* ==================================================
+   МОДАЛКА
+================================================== */
+function openModal(title, html) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+document.getElementById('modalOverlay').onclick = (e) => {
+  if (e.target.id === 'modalOverlay') closeModal();
+};
+
+/* ==================================================
+   ДАШБОРД
+================================================== */
+function renderDash() {
+  const t = today();
+  const day = State.kcal[t] || { foods: {}, water: 0 };
+  const totals = sumDay(day);
+  const kcalPct = Math.min(100, (totals.k / State.kcalTarget) * 100);
+
+  // привычки (заглушка до части 3)
+  const habits = DB.load('habits', []);
+  const habitsDone = 0;
+
+  const grid = document.getElementById('dashGrid');
+  grid.innerHTML = `
+    <div class="dash-tile" onclick="switchTab('kcal')">
+      <span class="dash-tile__icon">🍽</span>
+      <div class="dash-tile__label">Калории</div>
+      <div class="dash-tile__value">${Math.round(totals.k)}</div>
+      <div class="dash-tile__hint">из ${State.kcalTarget} ккал</div>
+      <div class="progress"><div class="progress__fill ${kcalPct>100?'danger':''}" style="width:${kcalPct}%"></div></div>
+    </div>
+    <div class="dash-tile" onclick="switchTab('kcal')">
+      <span class="dash-tile__icon">💧</span>
+      <div class="dash-tile__label">Вода</div>
+      <div class="dash-tile__value">${day.water || 0}<span style="font-size:13px;color:var(--text-2)">/8</span></div>
+      <div class="dash-tile__hint">стаканов</div>
+    </div>
+    <div class="dash-tile" onclick="switchTab('fin')">
+      <span class="dash-tile__icon">₿</span>
+      <div class="dash-tile__label">Баланс</div>
+      <div class="dash-tile__value" style="font-size:16px;color:var(--text-2)">— —</div>
+      <div class="dash-tile__hint">появится в ч.2</div>
+    </div>
+    <div class="dash-tile" onclick="switchTab('task')">
+      <span class="dash-tile__icon">☰</span>
+      <div class="dash-tile__label">Задачи</div>
+      <div class="dash-tile__value">— —</div>
+      <div class="dash-tile__hint">появится в ч.5</div>
+    </div>
+  `;
+
+  // график калорий за 7 дней
+  const chart = document.getElementById('dashKcalChart');
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0,10);
+    const dd = State.kcal[key] || { foods: {} };
+    const s = sumDay(dd);
+    days.push({ key, val: s.k, label: shortDate(key) });
+  }
+  const max = Math.max(...days.map(x => x.val), State.kcalTarget, 1);
+  chart.innerHTML = days.map(d => `
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div class="bar-chart__bar" style="width:100%;height:${Math.max(2, (d.val/max)*80)}px" title="${Math.round(d.val)} ккал"></div>
+      <div class="bar-chart__label">${d.label}</div>
+    </div>
+  `).join('');
+}
+
+function sumDay(day) {
+  const res = { k: 0, p: 0, f: 0, c: 0 };
+  if (!day || !day.foods) return res;
+  Object.values(day.foods).forEach(arr => {
+    arr.forEach(f => {
+      res.k += f.k; res.p += f.p; res.f += f.f; res.c += f.c;
+    });
+  });
+  return res;
+}
+
+/* ==================================================
+   КАЛОРИИ
+================================================== */
+const MEALS = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
+
+function renderKcal() {
+  // Чипы дат (последние 7 + сегодня)
+  const chips = document.getElementById('kcalDates');
+  const dates = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0,10);
+    dates.push(key);
+  }
+  if (!dates.includes(State.currentDate)) dates.unshift(State.currentDate);
+  chips.innerHTML = dates.map(d => `
+    <button class="chip ${d === State.currentDate ? 'active' : ''}" onclick="setKcalDate('${d}')">
+      ${d === today() ? 'Сегодня' : dateLabel(d).split(',')[0] + ' ' + shortDate(d)}
+    </button>
+  `).join('');
+
+  document.getElementById('kcalDateLabel').textContent = dateLabel(State.currentDate);
+
+  const day = State.kcal[State.currentDate] || { foods: {}, water: 0 };
+  const t = sumDay(day);
+
+  document.getElementById('mKcal').textContent = Math.round(t.k);
+  document.getElementById('mP').textContent = Math.round(t.p);
+  document.getElementById('mF').textContent = Math.round(t.f);
+  document.getElementById('mC').textContent = Math.round(t.c);
+  document.getElementById('kcalTarget').textContent = `Норма: ${State.kcalTarget} ккал`;
+
+  const pct = Math.min(100, (t.k / State.kcalTarget) * 100);
+  const bar = document.getElementById('kcalProgress');
+  bar.style.width = pct + '%';
+  bar.className = 'progress__fill' + (t.k > State.kcalTarget ? ' danger' : '');
+
+  // Вода
+  const water = day.water || 0;
+  document.getElementById('waterCount').textContent = water;
+  const drops = document.getElementById('waterDrops');
+  drops.innerHTML = Array.from({length: 8}, (_, i) =>
+    `<div class="water-drop ${i < water ? 'filled' : ''}">${i < water ? '💧' : ''}</div>`
+  ).join('');
+  document.getElementById('waterAddBtn').onclick = () => {
+    const d = State.kcal[State.currentDate] || { foods: {}, water: 0 };
+    d.water = Math.min(8, (d.water || 0) + 1);
+    State.kcal[State.currentDate] = d;
+    DB.save('kcal', State.kcal);
+    renderKcal();
+  };
+
+  // Приёмы пищи
+  const container = document.getElementById('mealsContainer');
+  container.innerHTML = MEALS.map(meal => {
+    const items = (day.foods && day.foods[meal]) || [];
+    const mealKcal = items.reduce((s, f) => s + f.k, 0);
+    return `
+      <div class="card meal-group">
+        <div class="meal-group__head">
+          <span>${meal}</span>
+          <span class="kcal">${Math.round(mealKcal)} ккал</span>
+        </div>
+        ${items.length === 0
+          ? `<div style="color:var(--text-3);font-size:13px;padding:8px 0">Пусто</div>`
+          : items.map((f, idx) => `
+            <div class="food-item">
+              <div style="flex:1">
+                <div class="food-item__name">${escapeHtml(f.name)}</div>
+                <div class="food-item__meta">${f.grams ? f.grams + 'г · ' : ''}Б${Math.round(f.p)} Ж${Math.round(f.f)} У${Math.round(f.c)}</div>
+              </div>
+              <div class="food-item__kcal">${Math.round(f.k)}</div>
+              <button class="food-item__del" onclick="removeFood('${meal}',${idx})">×</button>
+            </div>
+          `).join('')
+        }
+        <button class="btn btn--sm btn--ghost" style="margin-top:8px" onclick="addFoodTo('${meal}')">+ Добавить</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function setKcalDate(d) { State.currentDate = d; renderKcal(); }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function removeFood(meal, idx) {
+  const d = State.kcal[State.currentDate];
+  if (!d || !d.foods || !d.foods[meal]) return;
+  d.foods[meal].splice(idx, 1);
+  DB.save('kcal', State.kcal);
+  renderKcal();
+}
+
+function addFood() { addFoodTo('Завтрак'); }
+
+function addFoodTo(meal) {
+  const productsOptions = State.products.map((p, i) =>
+    `<option value="${i}">${escapeHtml(p.n)} (${p.k} ккал/100г)</option>`
+  ).join('');
+
+  openModal('Добавить еду · ' + meal, `
+    <div class="form-group">
+      <label>Продукт из базы</label>
+      <select id="fSelect" onchange="onProductPick()">
+        <option value="">— Выбрать —</option>
+        ${productsOptions}
+        <option value="custom">✏️ Свой продукт (вручную)</option>
+      </select>
+    </div>
+    <div id="fManual" style="display:none">
+      <div class="form-group"><label>Название</label><input id="fName" placeholder="Например, домашний суп"></div>
+    </div>
+    <div class="form-group"><label>Граммы</label><input id="fGrams" type="number" inputmode="numeric" placeholder="100" value="100"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Ккал / 100г</label><input id="fK" type="number" inputmode="decimal" value="0"></div>
+      <div class="form-group"><label>Белки / 100г</label><input id="fP" type="number" inputmode="decimal" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Жиры / 100г</label><input id="fF" type="number" inputmode="decimal" value="0"></div>
+      <div class="form-group"><label>Углев. / 100г</label><input id="fC" type="number" inputmode="decimal" value="0"></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-2);margin-bottom:12px" id="fPreview">Итого: 0 ккал</div>
+    <button class="btn btn--primary btn--block" onclick="saveFood('${meal}')">Добавить</button>
+  `);
+
+  ['fGrams','fK','fP','fF','fC'].forEach(id => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.oninput = updatePreview;
+    }, 0);
+  });
+}
+
+function onProductPick() {
+  const sel = document.getElementById('fSelect');
+  const manual = document.getElementById('fManual');
+  if (sel.value === 'custom' || sel.value === '') {
+    manual.style.display = sel.value === 'custom' ? 'block' : 'none';
+    if (sel.value === 'custom') {
+      document.getElementById('fK').value = 0;
+      document.getElementById('fP').value = 0;
+      document.getElementById('fF').value = 0;
+      document.getElementById('fC').value = 0;
+    }
+  } else {
+    manual.style.display = 'none';
+    const p = State.products[parseInt(sel.value)];
+    document.getElementById('fK').value = p.k;
+    document.getElementById('fP').value = p.p;
+    document.getElementById('fF').value = p.f;
+    document.getElementById('fC').value = p.c;
+  }
+  updatePreview();
+}
+
+function updatePreview() {
+  const g = parseFloat(document.getElementById('fGrams').value) || 0;
+  const k = parseFloat(document.getElementById('fK').value) || 0;
+  const p = parseFloat(document.getElementById('fP').value) || 0;
+  const f = parseFloat(document.getElementById('fF').value) || 0;
+  const c = parseFloat(document.getElementById('fC').value) || 0;
+  const r = g / 100;
+  const el = document.getElementById('fPreview');
+  if (el) el.textContent = `Итого: ${Math.round(k*r)} ккал · Б${(p*r).toFixed(1)} Ж${(f*r).toFixed(1)} У${(c*r).toFixed(1)}`;
+}
+
+function saveFood(meal) {
+  const sel = document.getElementById('fSelect').value;
+  const grams = parseFloat(document.getElementById('fGrams').value) || 100;
+  let name;
+  if (sel === 'custom') name = document.getElementById('fName').value.trim() || 'Свой продукт';
+  else if (sel === '') { alert('Выбери продукт'); return; }
+  else name = State.products[parseInt(sel)].n;
+
+  const r = grams / 100;
+  const item = {
+    name,
+    grams,
+    k: (parseFloat(document.getElementById('fK').value) || 0) * r,
+    p: (parseFloat(document.getElementById('fP').value) || 0) * r,
+    f: (parseFloat(document.getElementById('fF').value) || 0) * r,
+    c: (parseFloat(document.getElementById('fC').value) || 0) * r,
+  };
+
+  const d = State.kcal[State.currentDate] || { foods: {}, water: 0 };
+  if (!d.foods) d.foods = {};
+  if (!d.foods[meal]) d.foods[meal] = [];
+  d.foods[meal].push(item);
+  State.kcal[State.currentDate] = d;
+  DB.save('kcal', State.kcal);
+  closeModal();
+  renderKcal();
+
+  // сохранить свой продукт в базу
+  if (sel === 'custom') {
+    const exists = State.products.find(p => p.n.toLowerCase() === name.toLowerCase());
+    if (!exists) {
+      State.products.push({
+        n: name,
+        k: parseFloat(document.getElementById('fK').value) || 0,
+        p: parseFloat(document.getElementById('fP').value) || 0,
+        f: parseFloat(document.getElementById('fF').value) || 0,
+        c: parseFloat(document.getElementById('fC').value) || 0,
+      });
+      DB.save('products', State.products);
+    }
+  }
+}
+
+/* ==================================================
+   ЗАГЛУШКИ ДЛЯ БУДУЩИХ ЧАСТЕЙ
+================================================== */
+function showStub(title, part) {
+  const panelMap = { 'Финансы':'fin', 'Привычки':'hab', 'Тренировки':'work', 'Задачи':'task' };
+  const panel = document.getElementById('panel-' + panelMap[title]);
+  panel.innerHTML = `
+    <div class="empty">
+      <div class="empty__icon">🔧</div>
+      <div class="empty__text">${title} — будет в ${part}</div>
+    </div>
+  `;
+}
+
+/* ==================================================
+   СТАРТ
+================================================== */
+applyTheme();
+switchTab('dash');
+</script>
+</body>
+</html>
